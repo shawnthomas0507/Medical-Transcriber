@@ -11,6 +11,7 @@ engine=pyttsx3.init()
 
 
 def record_speech():
+    
     recognizer = speech_recognition.Recognizer()
     engine = pyttsx3.init()
     final = ""
