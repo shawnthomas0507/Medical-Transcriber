@@ -11,3 +11,4 @@ class MessageState(TypedDict):
     recorded_text: Annotated[str,add]
     reask_doctor: str
     formatted_conversation: Annotated[str,add]
+    soap: str
