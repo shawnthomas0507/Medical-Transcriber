@@ -4,15 +4,18 @@ from model import llm
 from classes import MessageState
 from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
 from langgraph.graph import END
-
+from mongo import client
 
 
 engine=pyttsx3.init()
 recognizer=speech_recognition.Recognizer()
 
 def record_speech(state: MessageState):
+    """
+    This tool is used when the doctor wants to take notes.
+    """
     recognizer = speech_recognition.Recognizer()
-    engine.say("Hey Doctor. I have started recording")
+    engine.say("Hey Doctor. I have started taking notes")
     engine.runAndWait()
 
     final = ""
@@ -20,7 +23,7 @@ def record_speech(state: MessageState):
     while True:
         try:
             with speech_recognition.Microphone() as mic:
-                recognizer.adjust_for_ambient_noise(mic, duration=0.2)
+                recognizer.adjust_for_ambient_noise(mic, duration=0.1)
                 print("Listening....")
                 audio = recognizer.listen(mic, timeout=3, phrase_time_limit=None)
                 
@@ -50,48 +53,66 @@ def record_speech(state: MessageState):
 
 def format_conversation(state: MessageState):
     recorded_text=state["recorded_text"]
+    print("###")
+    print(recorded_text)
+    print("###")
     instructions="""
-    You will be provided with a conversation between a patient and doctor.
-    Your job is to label each conversation as doctor or patient.
-    Remember, do not make up or put your own information in this.
-    Carefully analyze each sentence.
+        Label each sentence in the following conversation as either "Patient" or "Doctor." Output each labeled sentence in the format:
+        [Speaker]: [Sentence] 
 
-    For example:
-    Input: How have you been feeling today
-    Output: Doctor: How have you been feeling today
-
-    The conversation is as follows: {conversation}
+        Just give me the labelled conversation.
+        The conversation is as follows: {conversation}  
     """
     sys=instructions.format(conversation=recorded_text)
     result=llm.invoke([AIMessage(content=sys)]).content
+    print("###")
+    print(result.strip())
+    print("######")
     return {"formatted_conversation":result}
 
 def SOAP_formatter(state: MessageState):
     conversation=state["formatted_conversation"]
+    db=client['patient']
+    vitals=db['patient_vitals']
+    vital=vitals.find_one({"patient_id":1})
+    print("###")
+    print(conversation)
+    print("###")
     instructions="""
-    You will be provided with  a conversation between a patient and a doctor.
-    Your job is to carefully analyse the coversation and summarize it into a SOAP format.
+    You will be provided with a conversation between a patient and a doctor and the vitals of the patient.
+    Your task is to **extract** information from the conversation and summarize it in the **SOAP format** without adding any extra information.  
 
-    The SOAP format is as follows along with an example:
+    ### **Instructions:**  
+    1. **Do not** modify, interpret, or add any extra details.  
+    2. **Only use** the information present in the conversation.  
+    3. If any section (Subjective, Objective, Assessment, or Plan) is missing, state **"Information missing."**  
+    4. Output must be **strictly** in the following format:  
+
+    
+    Clinical Notes:  
 
     Subjective:  
-    - What has the patient been feeling 
+    - [Extracted details from conversation]  
 
     Objective:  
-    - Any other symptoms
+    - [Extracted details from conversation]  
 
     Assessment:  
-    - The doctor's  Assesment 
+    - [Extracted details from conversation or state "Information missing."]  
 
     Plan:  
-    - What medicines or procedures to take.
+    - [Extracted details from conversation or state "Information missing."]  
 
-    Output only in this format and nothing else. Do not make up any information if any information is missing do not add your own information just say information not provided.
-    For example if assesment is not provided say information not provided.
+    ### **Conversation:**  
+    {conversation}  
 
-    The conversation is as follows: {conversation}
+    ### **Vitals:**
+    {vitals}
+
+    **Output only in the above format. Do not add explanations, interpretations, or extra details.**  
+
     """
-    sys=instructions.format(conversation=conversation)
+    sys=instructions.format(conversation=conversation,vitals=vital['vitals'])
     result=llm.invoke([AIMessage(content=sys)])
     return {"messages":result.content}
 
@@ -99,7 +120,7 @@ def SOAP_formatter(state: MessageState):
 
 def router_condition(state: MessageState):
     soap=state["messages"][-1]
-    if "information not provided    " in soap.content.lower():
+    if "information missing" in soap.content.lower():
         return "reask_node"
     else:
         return "final_node"
@@ -107,15 +128,17 @@ def router_condition(state: MessageState):
 def reask(state: MessageState):
     soap=state["messages"][-1].content
     instructions="""
-    You will be given the SOAP summary of a conversation between a doctor and patient.
-    You will find out under what heading is information not provided.
-    Using that heading create a question to prompt the doctor that he/she has not provided the specific information.
-    Just give me the question nothing else. 
-    Remember clearly!!! Do not add anything else. Always start with Hey doctor.
-    For example:
-    Hey doctor you have not included the plan. 
+    You will be given the SOAP summary which has the following headings: (Subjective, Objective, Assessment and Plan ).
+    Identify which SOAP heading or headings lacks information.
+    Create a targeted question to prompt the doctor about the missing information.
+    Respond ONLY with the question, starting with "Hey doctor". 
 
-    The summary is as follows: {summary}  
+    Example output:
+    Hey doctor you have not included the Assesment.
+
+    ### Remember do not add your own information just ask a question!!!
+    The SOAP summary is as follows: 
+    {summary}  
     """
     sys=instructions.format(summary=soap)
     result=llm.invoke([AIMessage(content=sys)])
@@ -123,19 +146,88 @@ def reask(state: MessageState):
     engine.runAndWait()
     return {"reask_doctor":result.content}
 
-def multiply(a: int,b: int):
-    """Multiply a and b.
-
-    Args:
-    a: first int
-    b: second int
+def general(state: MessageState):
     """
-    return "Hi"
+    This tool is used when the doctor asks something general which is not related to taking notes.
+    Like what medicines did i mention and so on. Any general queestion.
+    """
+    soap_info=state["soap"]
+    query=state["messages"][-1].content
+    instructions="""
+    You will be provided with a SOAP summary {summary}.
+    Using this context answer the question the user may have.
+    Even if the user asks a question outside the context answer it.
+
+    The user's question is {question}
+    {summary}  
+    """
+    sys=instructions.format(question=query,summary=soap_info)
+    
+    recognizer = speech_recognition.Recognizer()
+    result=llm.invoke([AIMessage(content=sys)])
+    engine.say(result.content)
+    engine.runAndWait()
+    return {"messages":result.content}
 
 def final_format(state: MessageState):
     final=state["messages"][-1].content
     engine.say(final)
     engine.runAndWait()
-    return {"messages":"END"}
+    engine.say("What shall I do with this data?")
+    engine.runAndWait()
+    return {"messages":"END","soap":final}
 
 
+def push_mongo(state: MessageState):
+    """
+    This tool is used when data needs to be pushed to the patient database.
+    """
+    clinical=state["soap"]
+    recognizer = speech_recognition.Recognizer()
+    engine.say("I am pushing these clinical notes to the patient database")
+    engine.runAndWait()
+    db=client['patient']
+    notes=db['clinical_notes']
+    notes.insert_one({'notes':clinical})
+    engine.say("Data successfully pushed")
+    engine.runAndWait()
+    return {"messages":"Pushed"}
+
+    
+def record_intro_speech(state: MessageState):
+    
+    recognizer = speech_recognition.Recognizer()
+    engine = pyttsx3.init()
+    final = ""
+    
+    
+    while True:
+        try:
+            with speech_recognition.Microphone() as mic:
+                recognizer.adjust_for_ambient_noise(mic, duration=0.1)
+                print("Listening....")
+                audio = recognizer.listen(mic, timeout=3, phrase_time_limit=None)
+                
+                text = recognizer.recognize_groq(audio)
+                text = text.lower()
+                
+                if "stop recording" in text:
+                    print("Stopping recording...")
+                    break
+                    
+                final += " " + text
+                print(text)
+                
+        except speech_recognition.WaitTimeoutError:
+            print("No speech detected for 3 seconds. Stopping recording...")
+            break
+            
+        except speech_recognition.UnknownValueError:
+            print("Could not understand audio. Stopping recording...")
+            break
+            
+        except Exception as e:
+            print(f"Error occurred: {e}")
+            break
+    
+    return {"messages":final.strip()}
