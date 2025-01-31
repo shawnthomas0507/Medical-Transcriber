@@ -12,7 +12,7 @@ recognizer=speech_recognition.Recognizer()
 
 def record_speech(state: MessageState):
     """
-    This tool is used when the doctor wants to take notes.
+    This tool is used when the doctor wants to take notes. Only if he says anything about notes then only call this tool.
     """
     recognizer = speech_recognition.Recognizer()
     engine.say("Hey Doctor. I have started taking notes")
@@ -151,23 +151,45 @@ def general(state: MessageState):
     This tool is used when the doctor asks something general which is not related to taking notes.
     Like what medicines did i mention and so on. Any general queestion.
     """
-    soap_info=state["soap"]
-    query=state["messages"][-1].content
-    instructions="""
-    You will be provided with a SOAP summary {summary}.
-    Using this context answer the question the user may have.
-    Even if the user asks a question outside the context answer it.
+    try:
+        soap_info = state["soap"]
+    except KeyError:
+        soap_info = None  # or some default value to indicate absence
 
-    The user's question is {question}
-    {summary}  
-    """
-    sys=instructions.format(question=query,summary=soap_info)
+    query = state["messages"][-1].content
+
+    if soap_info:
+
+        instructions="""
+        You will be provided with a SOAP summary {summary}.
+        Using this context answer the question the user may have.
+        Even if the user asks a question outside the context answer it.
+
+        The user's question is {question}
+        {summary}  
+        """
+        sys=instructions.format(question=query,summary=soap_info)
+        
+        recognizer = speech_recognition.Recognizer()
+        result=llm.invoke([AIMessage(content=sys)])
+        engine.say(result.content)
+        engine.runAndWait()
+        return {"messages":result.content}
     
-    recognizer = speech_recognition.Recognizer()
-    result=llm.invoke([AIMessage(content=sys)])
-    engine.say(result.content)
-    engine.runAndWait()
-    return {"messages":result.content}
+    else:
+        instructions="""
+        "You are Sofia, a world class Medical Scribe".
+        You have to give a proper formal answer based on the user's question.
+        The user's question is {question}
+        """
+        sys=instructions.format(question=query)
+        
+        recognizer = speech_recognition.Recognizer()
+        result=llm.invoke([AIMessage(content=sys)])
+        engine.say(result.content)
+        engine.runAndWait()
+        return {"messages":result.content}
+
 
 def final_format(state: MessageState):
     final=state["messages"][-1].content
@@ -231,3 +253,12 @@ def record_intro_speech(state: MessageState):
             break
     
     return {"messages":final.strip()}
+
+
+def exit(state: MessageState):
+    """
+        This tool is triggered when the user expresses gratitude, or intends to exit.  
+    """
+    engine.say("Glad I could help See you soon")
+    engine.runAndWait()
+    return {"messages":"Glad I could help See you soon"}
