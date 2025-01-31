@@ -1,4 +1,4 @@
-# Medical AI Transcriber (I have named her Sofia, do not freak out if you hear a male, PyAudio won't offer a female voice :p
+# Medical AI Transcriber (I have named her Sofia, do not freak out if you hear a male, PyAudio would not offer a female voice :p)
 
 This project is a **Medical AI Transcriber** designed to convert spoken language into clinical notes. The transcriber processes real-time voice input and generates formatted clinical notes using the **SOAP** (Subjective, Objective, Assessment, Plan) format. The system integrates AI-powered tools to transcribe, format, and store the notes in a MongoDB database.
 
