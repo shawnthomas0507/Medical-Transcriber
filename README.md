@@ -9,3 +9,7 @@ This project is a **Medical AI Transcriber** designed to convert spoken language
 - **MongoDB Integration**: The transcriptions are pushed to a MongoDB database for storage.
 - **AI Agent Integration**: Uses AI tools to determine the appropriate processing flow.
 - **Intuitive Interface**: Provides a user-friendly interface for seamless interaction and voice recording.
+
+
+
+                                                                                                           To be continued....
