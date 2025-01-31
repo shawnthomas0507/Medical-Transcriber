@@ -5,7 +5,6 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import HumanMessage,AIMessage,SystemMessage
 from model import llm
 from langgraph.prebuilt import ToolNode,tools_condition
-from IPython.display import Image,display
 
 llm_with_tools=llm.bind_tools(tools=[record_speech,general,push_mongo])
 
@@ -36,7 +35,6 @@ graph.add_edge("final_node","record_intro_speech")
 graph.add_edge("reask_node","record_speech")
 memory=MemorySaver()
 app=graph.compile(checkpointer=memory)
-display(Image(app.get_graph().draw_mermaid_png()))
 
 
 

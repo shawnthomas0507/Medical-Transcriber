@@ -1,0 +1,8 @@
+langchain
+langgraph
+transformers
+requests
+pyttsx3
+SpeechRecognition
+pymongo
+langchain_groq
