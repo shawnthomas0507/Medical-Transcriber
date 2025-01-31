@@ -11,5 +11,4 @@ This project is a **Medical AI Transcriber** designed to convert spoken language
 - **Intuitive Interface**: Provides a user-friendly interface for seamless interaction and voice recording.
 
 
-
-                                                                                                           To be continued....
+  To be continued....
