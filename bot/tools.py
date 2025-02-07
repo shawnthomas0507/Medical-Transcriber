@@ -262,3 +262,29 @@ def exit(state: MessageState):
     engine.say("Glad I could help See you soon")
     engine.runAndWait()
     return {"messages":"Glad I could help See you soon"}
+
+
+def patient_past(state: MessageState):
+    """
+       This tool is triggered when the user asks for the patients medical history.
+    """
+
+    db = client['patient']  
+    history = db['clinical_notes'] 
+
+    history_cursor = history.find({}, {'notes': 1, '_id': 0})  
+    docs=[]
+    for doc in history_cursor:
+     docs.append(doc['notes'])
+    instructions="""
+        You are Sofia, a world class Medical Scribe.
+        You will be given a patient's medical history.
+        You have to summarize it in a short but in depth way which does not 
+        The patient's history is {history}
+        """
+    sys=instructions.format(history=docs)
+    recognizer = speech_recognition.Recognizer()
+    result=llm.invoke([AIMessage(content=sys)])
+    engine.say(result.content)
+    engine.runAndWait()
+    return {"messages":result.content}
