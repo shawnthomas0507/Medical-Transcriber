@@ -13,5 +13,6 @@ engine.say("Hey doctor how can i help?")
 engine.runAndWait()
 thread={"configurable":{"thread_id":"1"}}
 for event in app.stream({"messages": [HumanMessage(content="Hi")]},thread,stream_mode="values"):
-    event["messages"][-1].pretty_print()
+    engine.say(event["messages"][-1])
+    engine.runAndWait()
 

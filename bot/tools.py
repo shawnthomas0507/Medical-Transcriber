@@ -1,7 +1,7 @@
 import speech_recognition
 import pyttsx3
 from model import llm
-from classes import MessageState
+from classes import MessageState,spoken_messages
 from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
 from langgraph.graph import END
 from mongo import client
@@ -142,9 +142,7 @@ def reask(state: MessageState):
     """
     sys=instructions.format(summary=soap)
     result=llm.invoke([AIMessage(content=sys)])
-    engine.say(result.content)
-    engine.runAndWait()
-    return {"reask_doctor":result.content}
+    return {"reask_doctor":result.content,"spoken_messages":result.content}
 
 def general(state: MessageState):
     """
@@ -154,7 +152,7 @@ def general(state: MessageState):
     try:
         soap_info = state["soap"]
     except KeyError:
-        soap_info = None  # or some default value to indicate absence
+        soap_info = None  
 
     query = state["messages"][-1].content
 
@@ -174,7 +172,7 @@ def general(state: MessageState):
         result=llm.invoke([AIMessage(content=sys)])
         engine.say(result.content)
         engine.runAndWait()
-        return {"messages":result.content}
+        return {"messages":result.content,"spoken_messages":result.content}
     
     else:
         instructions="""
@@ -188,7 +186,7 @@ def general(state: MessageState):
         result=llm.invoke([AIMessage(content=sys)])
         engine.say(result.content)
         engine.runAndWait()
-        return {"messages":result.content}
+        return {"messages":result.content,"spoken_messages":result.content}
 
 
 def final_format(state: MessageState):
@@ -197,7 +195,7 @@ def final_format(state: MessageState):
     engine.runAndWait()
     engine.say("What shall I do with this data?")
     engine.runAndWait()
-    return {"messages":"END","soap":final}
+    return {"messages":"END","soap":final,"spoken_messages":final_format}
 
 
 def push_mongo(state: MessageState):
@@ -211,9 +209,7 @@ def push_mongo(state: MessageState):
     db=client['patient']
     notes=db['clinical_notes']
     notes.insert_one({'notes':clinical})
-    engine.say("Data successfully pushed")
-    engine.runAndWait()
-    return {"messages":"Pushed"}
+    return {"messages":"Pushed","spoken_messages":"Data successfully pushed"}
 
     
 def record_intro_speech(state: MessageState):
@@ -259,32 +255,6 @@ def exit(state: MessageState):
     """
         This tool is triggered when the user expresses gratitude, or intends to exit.  
     """
-    engine.say("Glad I could help See you soon")
-    engine.runAndWait()
-    return {"messages":"Glad I could help See you soon"}
+    return {"messages":"Glad I could help See you soon","spoken_messages":"Glad I could help See you soon"}
 
 
-def patient_past(state: MessageState):
-    """
-       This tool is triggered when the user asks for the patients medical history.
-    """
-
-    db = client['patient']  
-    history = db['clinical_notes'] 
-
-    history_cursor = history.find({}, {'notes': 1, '_id': 0})  
-    docs=[]
-    for doc in history_cursor:
-     docs.append(doc['notes'])
-    instructions="""
-        You are Sofia, a world class Medical Scribe.
-        You will be given a patient's medical history.
-        You have to summarize it in a short but in depth way which does not 
-        The patient's history is {history}
-        """
-    sys=instructions.format(history=docs)
-    recognizer = speech_recognition.Recognizer()
-    result=llm.invoke([AIMessage(content=sys)])
-    engine.say(result.content)
-    engine.runAndWait()
-    return {"messages":result.content}

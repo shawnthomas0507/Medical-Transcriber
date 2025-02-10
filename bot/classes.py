@@ -8,6 +8,7 @@ from operator import add
 
 class MessageState(TypedDict):
     messages: Annotated[list[BaseMessage],add_messages]
+    spoken_messages: Annotated[list[BaseMessage],add_messages]
     recorded_text: Annotated[str,add]
     reask_doctor: str
     formatted_conversation: Annotated[str,add]
