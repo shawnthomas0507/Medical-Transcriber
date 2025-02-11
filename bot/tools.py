@@ -1,7 +1,7 @@
 import speech_recognition
 import pyttsx3
 from model import llm
-from classes import MessageState,spoken_messages
+from classes import MessageState
 from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
 from langgraph.graph import END
 from mongo import client
@@ -191,11 +191,7 @@ def general(state: MessageState):
 
 def final_format(state: MessageState):
     final=state["messages"][-1].content
-    engine.say(final)
-    engine.runAndWait()
-    engine.say("What shall I do with this data?")
-    engine.runAndWait()
-    return {"messages":"END","soap":final,"spoken_messages":final_format}
+    return {"messages":"END","soap":final,"spoken_messages":final}
 
 
 def push_mongo(state: MessageState):
@@ -203,9 +199,6 @@ def push_mongo(state: MessageState):
     This tool is used when data needs to be pushed to the patient database.
     """
     clinical=state["soap"]
-    recognizer = speech_recognition.Recognizer()
-    engine.say("I am pushing these clinical notes to the patient database")
-    engine.runAndWait()
     db=client['patient']
     notes=db['clinical_notes']
     notes.insert_one({'notes':clinical})
