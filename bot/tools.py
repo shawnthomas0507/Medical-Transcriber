@@ -49,13 +49,10 @@ def record_speech(state: MessageState):
             print(f"Error occurred: {e}")
             break
     
-    return {"recorded_text":final.strip()}
+    return {"recorded_text":final.strip(),"spoken_messages":""}
 
 def format_conversation(state: MessageState):
     recorded_text=state["recorded_text"]
-    print("###")
-    print(recorded_text)
-    print("###")
     instructions="""
         Label each sentence in the following conversation as either "Patient" or "Doctor." Output each labeled sentence in the format:
         [Speaker]: [Sentence] 
@@ -65,19 +62,13 @@ def format_conversation(state: MessageState):
     """
     sys=instructions.format(conversation=recorded_text)
     result=llm.invoke([AIMessage(content=sys)]).content
-    print("###")
-    print(result.strip())
-    print("######")
-    return {"formatted_conversation":result}
+    return {"formatted_conversation":result,"spoken_messages":""}
 
 def SOAP_formatter(state: MessageState):
     conversation=state["formatted_conversation"]
     db=client['patient']
     vitals=db['patient_vitals']
     vital=vitals.find_one({"patient_id":1})
-    print("###")
-    print(conversation)
-    print("###")
     instructions="""
     You will be provided with a conversation between a patient and a doctor and the vitals of the patient.
     Your task is to **extract** information from the conversation and summarize it in the **SOAP format** without adding any extra information.  
@@ -114,7 +105,7 @@ def SOAP_formatter(state: MessageState):
     """
     sys=instructions.format(conversation=conversation,vitals=vital['vitals'])
     result=llm.invoke([AIMessage(content=sys)])
-    return {"messages":result.content}
+    return {"messages":result.content,"spoken_messages":""}
 
 
 
@@ -241,7 +232,7 @@ def record_intro_speech(state: MessageState):
             print(f"Error occurred: {e}")
             break
     
-    return {"messages":final.strip()}
+    return {"messages":final.strip(),"spoken_messages":""}
 
 
 def exit(state: MessageState):
