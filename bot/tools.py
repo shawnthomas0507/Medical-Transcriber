@@ -5,8 +5,7 @@ from classes import MessageState
 from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
 from langgraph.graph import END
 from mongo import client
-
-
+from call import make_tts_call
 engine=pyttsx3.init()
 recognizer=speech_recognition.Recognizer()
 
@@ -233,6 +232,30 @@ def record_intro_speech(state: MessageState):
             break
     
     return {"messages":final.strip(),"spoken_messages":""}
+
+
+def call_pharma(state:MessageState):
+    """
+        This tool is used when the doctor wants to call the pharmacy to order the medicines.
+    """
+    clinical=state["soap"]
+    instructions="""
+        You are an expert medical assistant handling prescription orders. 
+        Given the SOAP clinical notes below, extract only the names of all mentioned medications and their exact required quantities.  
+        Then, generate only a professional and engaging call script requesting the pharmacy to prepare these specific medications for patient pickup. 
+        The call script should be polite, clear, professional, and convey a sense of urgency.  
+        Do not include any other information, commentary, or explanations.  
+        Focus solely on extracting the medication names and quantities, and generating the call script.
+
+        The clinical notes are as follows: {notes}
+        """
+    sys=instructions.format(notes=clinical)
+    result=llm.invoke([AIMessage(content=sys)])
+    make_tts_call(result.content)
+    return {"spoken_messages":"Calling the pharmacy"}
+
+    
+
 
 
 def exit(state: MessageState):

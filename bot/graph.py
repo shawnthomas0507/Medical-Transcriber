@@ -1,12 +1,12 @@
 from langgraph.graph import START,END,StateGraph
 from classes import MessageState
-from tools import SOAP_formatter,record_speech,format_conversation,reask,router_condition,general,final_format,push_mongo,record_intro_speech,exit
+from tools import SOAP_formatter,record_speech,format_conversation,reask,router_condition,general,final_format,push_mongo,record_intro_speech,exit,call_pharma
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import HumanMessage,AIMessage,SystemMessage
 from model import llm
 from langgraph.prebuilt import ToolNode,tools_condition
 
-llm_with_tools=llm.bind_tools(tools=[record_speech,general,push_mongo,exit])
+llm_with_tools=llm.bind_tools(tools=[record_speech,general,push_mongo,call_pharma,exit])
 
 
 def router_agent(state: MessageState):
@@ -25,8 +25,9 @@ graph.add_node("reask_node",reask)
 graph.add_node("general",general)
 graph.add_node("exit",exit)
 graph.add_node("final_node",final_format)
+graph.add_node("call_pharma",call_pharma)
 graph.add_edge(START,"record_intro_speech")
-graph.add_conditional_edges("record_intro_speech",router_agent,["record_speech","general","push_mongo","exit"])
+graph.add_conditional_edges("record_intro_speech",router_agent,["record_speech","general","push_mongo","exit","call_pharma"])
 graph.add_edge("general","record_intro_speech")
 graph.add_edge("push_mongo","record_intro_speech")
 graph.add_edge("record_speech","format_conversation")
@@ -34,6 +35,7 @@ graph.add_edge("format_conversation","SOAP_formatter")
 graph.add_conditional_edges("SOAP_formatter",router_condition,["final_node","reask_node"])
 graph.add_edge("final_node","record_intro_speech")
 graph.add_edge("reask_node","record_speech")
+graph.add_edge("call_pharma",END)
 graph.add_edge("exit",END)
 memory=MemorySaver()
 app=graph.compile(checkpointer=memory)
