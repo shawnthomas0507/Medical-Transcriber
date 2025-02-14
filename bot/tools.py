@@ -5,8 +5,7 @@ from classes import MessageState
 from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
 from langgraph.graph import END
 from mongo import client
-
-
+from call import make_tts_call
 engine=pyttsx3.init()
 recognizer=speech_recognition.Recognizer()
 
@@ -49,13 +48,10 @@ def record_speech(state: MessageState):
             print(f"Error occurred: {e}")
             break
     
-    return {"recorded_text":final.strip()}
+    return {"recorded_text":final.strip(),"spoken_messages":""}
 
 def format_conversation(state: MessageState):
     recorded_text=state["recorded_text"]
-    print("###")
-    print(recorded_text)
-    print("###")
     instructions="""
         Label each sentence in the following conversation as either "Patient" or "Doctor." Output each labeled sentence in the format:
         [Speaker]: [Sentence] 
@@ -65,19 +61,13 @@ def format_conversation(state: MessageState):
     """
     sys=instructions.format(conversation=recorded_text)
     result=llm.invoke([AIMessage(content=sys)]).content
-    print("###")
-    print(result.strip())
-    print("######")
-    return {"formatted_conversation":result}
+    return {"formatted_conversation":result,"spoken_messages":""}
 
 def SOAP_formatter(state: MessageState):
     conversation=state["formatted_conversation"]
     db=client['patient']
     vitals=db['patient_vitals']
     vital=vitals.find_one({"patient_id":1})
-    print("###")
-    print(conversation)
-    print("###")
     instructions="""
     You will be provided with a conversation between a patient and a doctor and the vitals of the patient.
     Your task is to **extract** information from the conversation and summarize it in the **SOAP format** without adding any extra information.  
@@ -114,7 +104,7 @@ def SOAP_formatter(state: MessageState):
     """
     sys=instructions.format(conversation=conversation,vitals=vital['vitals'])
     result=llm.invoke([AIMessage(content=sys)])
-    return {"messages":result.content}
+    return {"messages":result.content,"spoken_messages":""}
 
 
 
@@ -142,9 +132,7 @@ def reask(state: MessageState):
     """
     sys=instructions.format(summary=soap)
     result=llm.invoke([AIMessage(content=sys)])
-    engine.say(result.content)
-    engine.runAndWait()
-    return {"reask_doctor":result.content}
+    return {"reask_doctor":result.content,"spoken_messages":result.content}
 
 def general(state: MessageState):
     """
@@ -154,7 +142,7 @@ def general(state: MessageState):
     try:
         soap_info = state["soap"]
     except KeyError:
-        soap_info = None  # or some default value to indicate absence
+        soap_info = None  
 
     query = state["messages"][-1].content
 
@@ -174,7 +162,7 @@ def general(state: MessageState):
         result=llm.invoke([AIMessage(content=sys)])
         engine.say(result.content)
         engine.runAndWait()
-        return {"messages":result.content}
+        return {"messages":result.content,"spoken_messages":result.content}
     
     else:
         instructions="""
@@ -188,16 +176,12 @@ def general(state: MessageState):
         result=llm.invoke([AIMessage(content=sys)])
         engine.say(result.content)
         engine.runAndWait()
-        return {"messages":result.content}
+        return {"messages":result.content,"spoken_messages":result.content}
 
 
 def final_format(state: MessageState):
     final=state["messages"][-1].content
-    engine.say(final)
-    engine.runAndWait()
-    engine.say("What shall I do with this data?")
-    engine.runAndWait()
-    return {"messages":"END","soap":final}
+    return {"messages":"END","soap":final,"spoken_messages":final}
 
 
 def push_mongo(state: MessageState):
@@ -205,15 +189,10 @@ def push_mongo(state: MessageState):
     This tool is used when data needs to be pushed to the patient database.
     """
     clinical=state["soap"]
-    recognizer = speech_recognition.Recognizer()
-    engine.say("I am pushing these clinical notes to the patient database")
-    engine.runAndWait()
     db=client['patient']
     notes=db['clinical_notes']
     notes.insert_one({'notes':clinical})
-    engine.say("Data successfully pushed")
-    engine.runAndWait()
-    return {"messages":"Pushed"}
+    return {"messages":"Pushed","spoken_messages":"Data successfully pushed"}
 
     
 def record_intro_speech(state: MessageState):
@@ -252,13 +231,37 @@ def record_intro_speech(state: MessageState):
             print(f"Error occurred: {e}")
             break
     
-    return {"messages":final.strip()}
+    return {"messages":final.strip(),"spoken_messages":""}
+
+
+def call_pharma(state:MessageState):
+    """
+        This tool is used when the doctor wants to call the pharmacy to order the medicines.
+    """
+    clinical=state["soap"]
+    instructions="""
+        You are an expert medical assistant handling prescription orders. 
+        Given the SOAP clinical notes below, extract only the names of all mentioned medications and their exact required quantities.  
+        Then, generate only a professional and engaging call script requesting the pharmacy to prepare these specific medications for patient pickup. 
+        The call script should be polite, clear, professional, and convey a sense of urgency.  
+        Do not include any other information, commentary, or explanations.  
+        Focus solely on extracting the medication names and quantities, and generating the call script.
+
+        The clinical notes are as follows: {notes}
+        """
+    sys=instructions.format(notes=clinical)
+    result=llm.invoke([AIMessage(content=sys)])
+    make_tts_call(result.content)
+    return {"spoken_messages":"Calling the pharmacy"}
+
+    
+
 
 
 def exit(state: MessageState):
     """
         This tool is triggered when the user expresses gratitude, or intends to exit.  
     """
-    engine.say("Glad I could help See you soon")
-    engine.runAndWait()
-    return {"messages":"Glad I could help See you soon"}
+    return {"messages":"Glad I could help See you soon","spoken_messages":"Glad I could help See you soon"}
+
+
