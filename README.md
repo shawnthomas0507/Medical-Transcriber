@@ -11,4 +11,6 @@ This project is a **Medical AI Transcriber** designed to convert spoken language
 - **Intuitive Interface**: Provides a user-friendly interface for seamless interaction and voice recording.
 
 
+Currently integrated the Twilio API caller function for it to make calls to pharmacies to order medicines based on the prescription provided.
+
   To be continued....
