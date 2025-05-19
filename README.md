@@ -20,6 +20,7 @@ The Medical Transcriber is an AI-powered application designed to assist healthca
 - **Pyttsx3**: For text-to-speech conversion.
 - **LangChain**: For managing conversational AI and message handling.
 - **MongoDB**: For data storage and retrieval.
+- **LangGraph**: For managing Agentic Workflows
 
 ## Installation
 
