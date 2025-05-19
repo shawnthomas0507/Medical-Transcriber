@@ -1,16 +1,64 @@
-# Medical AI Transcriber (I have named her Sofia, do not freak out if you hear a male, PyAudio would not offer a female voice :p)
+# Medical Transcriber
 
-This project is a **Medical AI Transcriber** designed to convert spoken language into clinical notes. The transcriber processes real-time voice input and generates formatted clinical notes using the **SOAP** (Subjective, Objective, Assessment, Plan) format. The system integrates AI-powered tools to transcribe, format, and store the notes in a MongoDB database.
+## Overview
+
+The Medical Transcriber is an AI-powered application designed to assist healthcare professionals in transcribing and managing patient interactions. Utilizing advanced speech recognition and natural language processing technologies, this tool aims to streamline the documentation process, allowing doctors to focus more on patient care.
 
 ## Features
 
-- **Real-Time Voice Transcription**: The system listens to the user’s speech and transcribes it in real-time.
-- **SOAP Formatter**: Converts transcribed speech into structured clinical notes using the SOAP format.
-- **MongoDB Integration**: The transcriptions are pushed to a MongoDB database for storage.
-- **AI Agent Integration**: Uses AI tools to determine the appropriate processing flow.
-- **Intuitive Interface**: Provides a user-friendly interface for seamless interaction and voice recording.
+- **Speech Recognition**: Converts spoken language into text, enabling doctors to dictate notes seamlessly.
+- **SOAP Note Generation**: Automatically formats transcribed conversations into the SOAP (Subjective, Objective, Assessment, Plan) format for easy documentation.
+- **Medication Call Scripts**: Generates professional call scripts for pharmacies based on clinical notes.
+- **Interactive Voice Response**: Engages with users through voice prompts and responses, enhancing user experience.
+- **MongoDB Integration**: Stores clinical notes and patient data securely in a MongoDB database.
 
+## Technologies Used
 
-Currently integrated the Twilio API caller function for it to make calls to pharmacies to order medicines based on the prescription provided.
+- **Python**: The primary programming language for backend development.
+- **Twilio**: For making voice calls and sending messages.
+- **SpeechRecognition**: For converting speech to text.
+- **Pyttsx3**: For text-to-speech conversion.
+- **LangChain**: For managing conversational AI and message handling.
+- **MongoDB**: For data storage and retrieval.
+
+## Installation
+
+To set up the Medical Transcriber on your local machine, follow these steps:
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/yourusername/Medical-Transcriber.git
+   cd Medical-Transcriber/bot
+   ```
+
+2. **Create a virtual environment** (optional but recommended):
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Set up environment variables**:
+   - Create a `.env` file in the `bot` directory and add your Twilio credentials and any other necessary API keys.
+
+5. **Run the application**:
+   ```bash
+   python main.py
+   ```
+
+## Usage
+
+1. **Start the application**: Run the `main.py` file to initiate the Medical Transcriber.
+2. **Interact with the application**: Use voice commands to dictate notes or ask questions. The application will respond accordingly.
+3. **Access stored data**: Clinical notes and patient data can be accessed through your own MongoDB database.
+
+## Contributing
+
+Contributions are welcome! If you have suggestions for improvements or new features, please open an issue or submit a pull request.
+
 
   To be continued....
