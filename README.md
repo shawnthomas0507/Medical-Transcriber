@@ -62,4 +62,6 @@ To set up the Medical Transcriber on your local machine, follow these steps:
 Contributions are welcome! If you have suggestions for improvements or new features, please open an issue or submit a pull request.
 
 
+I have a lot of plans for this project. It is still in progress :p 
+
   To be continued....
